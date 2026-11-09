@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>수행평가 알림장</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts (Classic Serif Fonts: Gowun Batang & Noto Serif KR) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=Noto+Serif+KR:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Gowun Batang', 'Noto Serif KR', serif;
+            background: linear-gradient(180deg, #f8f4ee 0%, #f3ece2 100%); /* 마음이 편안해지는 따뜻하고 은은한 샌드 베이지 */
+            background-attachment: fixed;
+            color: #38322c;
+            min-height: 100vh;
+        }
+
+        /* 클래식 서체 강조용 스타일 클래스 */
+        .font-classic {
+            font-family: 'Gowun Batang', serif;
+        }
+
+        /* 눈과 마음이 편안한 아늑한 포스트잇 카드 스타일 */
+        .card-postit {
+            background: #fffdf7; /* 부드럽고 아늑한 버터 크림 톤 */
+            border-radius: 18px;
+            box-shadow: 0 4px 20px rgba(70, 60, 50, 0.04);
+            border: 1px solid rgba(220, 208, 192, 0.6);
+            transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .card-postit:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 24px rgba(70, 60, 50, 0.08);
+        }
+
+        /* 커스텀 스크롤바 */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(180, 168, 150, 0.3);
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body class="pb-16">
+
+    <!-- 상단 헤더 -->
+    <header class="w-full py-7 px-6 mb-8 border-b border-stone-300/30 bg-white/40 backdrop-blur-md sticky top-0 z-30">
+        <div class="max-w-5xl mx-auto flex justify-between items-center">
+            <div>
+                <div class="flex items-center gap-2 mb-0.5">
+                    <span class="text-xs tracking-widest text-amber-900/60 font-semibold uppercase">Calm & Focus</span>
+                </div>
+                <h1 class="text-2xl sm:text-3xl font-bold text-stone-800 tracking-tight font-classic">수행평가 알림장</h1>
+                <p class="text-stone-500 text-xs mt-1 font-normal">여유로운 마음으로 오늘의 수행평가를 챙겨보세요.</p>
+            </div>
+
+            <button id="openAddModalBtn" class="bg-stone-800 hover:bg-stone-900 text-amber-50 text-xs sm:text-sm font-medium px-4 py-2.5 rounded-xl shadow-sm transition flex items-center gap-2">
+                <i class="fa-solid fa-plus text-xs"></i>
+                <span>수행평가 추가</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- 메인 컨테이너 -->
+    <main class="max-w-5xl mx-auto px-6">
+        <!-- 필터 및 상단 컨트롤 영역 -->
+        <div class="mb-6 flex flex-wrap items-center justify-between gap-4">
+            <div class="flex items-center gap-3 text-sm">
+                <span class="text-stone-600 font-medium">전체 <strong id="totalCount" class="text-stone-800 font-bold">0</strong></span>
+                <span class="text-stone-300">|</span>
+                <span class="text-rose-700/80 font-semibold flex items-center gap-1.5">
+                    <span class="w-2 h-2 rounded-full bg-rose-400 inline-block animate-pulse"></span>
+                    내일 마감 <strong id="d1Count" class="font-bold">0</strong>
+                </span>
+            </div>
+            
+            <!-- 탭 필터 -->
+            <div class="flex bg-stone-200/50 p-1 rounded-xl text-xs font-medium text-stone-600 border border-stone-300/30">
+                <button onclick="filterTasks('all')" id="btn-all" class="filter-btn px-3 py-1.5 rounded-lg bg-white/90 text-stone-800 font-semibold shadow-xs transition">전체</button>
+                <button onclick="filterTasks('upcoming')" id="btn-upcoming" class="filter-btn px-3 py-1.5 rounded-lg hover:text-stone-900 transition">진행중</button>
+                <button onclick="filterTasks('d1')" id="btn-d1" class="filter-btn px-3 py-1.5 rounded-lg hover:text-stone-900 transition">D-1 마감임박</button>
+            </div>
+        </div>
+
+        <!-- 카드 그리드 영역 -->
+        <div id="postitGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+            <!-- 자바스크립트로 카드 렌더링 -->
+        </div>
+
+        <!-- 데이터가 없을 때 표시할 미니멀 Empty State -->
+        <div id="emptyState" class="hidden flex-col items-center justify-center py-20 text-center">
+            <div class="w-12 h-12 rounded-full bg-stone-200/50 flex items-center justify-center text-stone-400 mb-3">
+                <i class="fa-regular fa-lightbulb text-lg"></i>
+            </div>
+            <p class="text-stone-600 text-sm font-medium">등록된 수행평가가 없습니다.</p>
+            <p class="text-stone-400 text-xs mt-1">상단의 '+ 수행평가 추가' 버튼을 눌러 여유롭게 작성해보세요.</p>
+        </div>
+    </main>
+
+    <!-- D-1 긴급 알림 팝업 모달 -->
+    <div id="d1PopupModal" class="fixed inset-0 z-50 flex items-center justify-center bg-stone-900/30 backdrop-blur-xs hidden p-4">
+        <div class="bg-[#fffdf9] rounded-2xl max-w-sm w-full p-6 shadow-2xl relative border border-stone-200/60">
+            <div class="flex items-center gap-2 mb-1.5">
+                <span class="w-2 h-2 rounded-full bg-rose-400"></span>
+                <span class="text-xs font-semibold text-rose-700 tracking-wide">내일 일정 안내</span>
+            </div>
+            <h2 class="text-lg font-bold text-stone-800 mb-1 font-classic">내일 제출할 수행평가가 있어요</h2>
+            <p class="text-xs text-stone-500 mb-4">차근차근 준비한 내용을 점검해보세요.</p>
+            
+            <!-- D-1 목록 -->
+            <div id="d1ListContainer" class="space-y-2.5 max-h-56 overflow-y-auto mb-5">
+                <!-- JS로 D-1 항목 삽입 -->
+            </div>
+
+            <button onclick="closeD1Popup()" class="w-full py-2.5 bg-stone-800 hover:bg-stone-900 text-amber-50 font-medium text-xs rounded-xl transition shadow-xs">
+                확인했습니다
+            </button>
+        </div>
+    </div>
+
+    <!-- 수행평가 추가/수정 모달 -->
+    <div id="taskModal" class="fixed inset-0 z-40 flex items-center justify-center bg-stone-900/30 backdrop-blur-xs hidden p-4">
+        <div class="bg-[#fffdf9] rounded-2xl max-w-md w-full p-6 shadow-2xl relative border border-stone-200/60">
+            <div class="flex justify-between items-center mb-5">
+                <h3 id="modalTitle" class="text-base font-bold text-stone-800 font-classic">새 수행평가 등록</h3>
+                <button onclick="closeTaskModal()" class="text-stone-400 hover:text-stone-600 text-sm">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <form id="taskForm" onsubmit="handleFormSubmit(event)" class="space-y-4">
+                <input type="hidden" id="taskId">
+                
+                <div>
+                    <label class="block text-xs font-medium text-stone-600 mb-1.5">과목명 <span class="text-rose-400">*</span></label>
+                    <input type="text" id="subjectInput" required placeholder="예: 국어, 영어, 수학" 
+                           class="w-full px-3 py-2.5 bg-stone-100/60 border border-stone-200/80 rounded-xl focus:outline-none focus:ring-2 focus:ring-stone-400 text-xs text-stone-800">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-medium text-stone-600 mb-1.5">제출 / 평가 일자 <span class="text-rose-400">*</span></label>
+                    <input type="date" id="dueDateInput" required 
+                           class="w-full px-3 py-2.5 bg-stone-100/60 border border-stone-200/80 rounded-xl focus:outline-none focus:ring-2 focus:ring-stone-400 text-xs text-stone-800">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-medium text-stone-600 mb-1.5">선생님 안내문 링크 (선택)</label>
+                    <input type="url" id="linkInput" placeholder="https://..." 
+                           class="w-full px-3 py-2.5 bg-stone-100/60 border border-stone-200/80 rounded-xl focus:outline-none focus:ring-2 focus:ring-stone-400 text-xs text-stone-800">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-medium text-stone-600 mb-1.5">메모 / 준비사항 (선택)</label>
+                    <textarea id="memoInput" rows="3" placeholder="준비물, 발표 분량 등 메모 입력" 
+                              class="w-full px-3 py-2.5 bg-stone-100/60 border border-stone-200/80 rounded-xl focus:outline-none focus:ring-2 focus:ring-stone-400 text-xs resize-none text-stone-800"></textarea>
+                </div>
+
+                <div class="pt-3 flex gap-2 justify-end">
+                    <button type="button" onclick="closeTaskModal()" class="px-4 py-2 bg-stone-100 hover:bg-stone-200 text-stone-600 rounded-xl font-medium text-xs transition">
+                        취소
+                    </button>
+                    <button type="submit" class="px-4 py-2 bg-stone-800 hover:bg-stone-900 text-white font-medium rounded-xl shadow-xs text-xs transition">
+                        저장하기
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // 기본 데이터 샘플
+        const DEFAULT_TASKS = [
+            {
+                id: 'sample-1',
+                subject: '국어',
+                dueDate: getRelativeDateStr(1), // 내일 (D-1)
+                link: 'https://docs.google.com/document/d/example1',
+                memo: '현대시 분석 독후감 작성 후 A4 프린트 제출하기'
+            },
+            {
+                id: 'sample-2',
+                subject: '영어',
+                dueDate: getRelativeDateStr(3),
+                link: 'https://classroom.google.com/',
+                memo: '자유 주제 3분 팝송 스피치 발표 PPT 준비'
+            },
+            {
+                id: 'sample-3',
+                subject: '통합과학',
+                dueDate: getRelativeDateStr(7),
+                link: '',
+                memo: '탐구 실험 보고서 작성 및 그래프 분석 첨부'
+            }
+        ];
+
+        let tasks = [];
+        let currentFilter = 'all';
+
+        // 오늘 기준 n일 후 날짜 구하기
+        function getRelativeDateStr(daysToAdd) {
+            const date = new Date();
+            date.setDate(date.getDate() + daysToAdd);
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
+        // 앱 초기화
+        window.addEventListener('DOMContentLoaded', () => {
+            loadTasks();
+            renderTasks();
+            checkAndShowD1Popup();
+
+            document.getElementById('openAddModalBtn').addEventListener('click', () => {
+                openTaskModal();
+            });
+        });
+
+        function loadTasks() {
+            const stored = localStorage.getItem('school_tasks');
+            if (stored) {
+                try {
+                    tasks = JSON.parse(stored);
+                } catch (e) {
+                    tasks = DEFAULT_TASKS;
+                }
+            } else {
+                tasks = DEFAULT_TASKS;
+                saveTasks();
+            }
+        }
+
+        function saveTasks() {
+            localStorage.setItem('school_tasks', JSON.stringify(tasks));
+        }
+
+        function calculateDDay(dueDateStr) {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+
+            const target = new Date(dueDateStr);
+            target.setHours(0, 0, 0, 0);
+
+            const diffTime = target.getTime() - today.getTime();
+            return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        }
+
+        function renderTasks() {
+            const grid = document.getElementById('postitGrid');
+            const emptyState = document.getElementById('emptyState');
+            grid.innerHTML = '';
+
+            let filtered = tasks.filter(t => {
+                const dday = calculateDDay(t.dueDate);
+                if (currentFilter === 'upcoming') return dday >= 0;
+                if (currentFilter === 'd1') return dday === 1;
+                return true;
+            });
+
+            filtered.sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate));
+
+            document.getElementById('totalCount').innerText = tasks.length;
+            const d1Count = tasks.filter(t => calculateDDay(t.dueDate) === 1).length;
+            document.getElementById('d1Count').innerText = d1Count;
+
+            if (filtered.length === 0) {
+                emptyState.classList.remove('hidden');
+                emptyState.classList.add('flex');
+            } else {
+                emptyState.classList.add('hidden');
+                emptyState.classList.remove('flex');
+            }
+
+            filtered.forEach((task) => {
+                const dday = calculateDDay(task.dueDate);
+
+                let ddayBadgeHtml = '';
+                if (dday === 1) {
+                    ddayBadgeHtml = `<span class="bg-rose-400 text-white font-bold px-2.5 py-0.5 rounded-full text-xs">D-1</span>`;
+                } else if (dday === 0) {
+                    ddayBadgeHtml = `<span class="bg-amber-600 text-white font-bold px-2.5 py-0.5 rounded-full text-xs">D-Day</span>`;
+                } else if (dday < 0) {
+                    ddayBadgeHtml = `<span class="bg-stone-200 text-stone-500 font-medium px-2.5 py-0.5 rounded-full text-xs">완료</span>`;
+                } else {
+                    ddayBadgeHtml = `<span class="bg-amber-100 text-amber-900 font-medium px-2.5 py-0.5 rounded-full text-xs">D-${dday}</span>`;
+                }
+
+                const card = document.createElement('div');
+                card.className = `card-postit p-5 flex flex-col justify-between min-h-[200px]`;
+                
+                card.innerHTML = `
+                    <div>
+                        <!-- Header -->
+                        <div class="flex items-center justify-between gap-2 mb-2">
+                            <h2 class="text-xl font-bold text-stone-800 break-all font-classic">
+                                ${escapeHtml(task.subject)}
+                            </h2>
+                            <div>${ddayBadgeHtml}</div>
+                        </div>
+
+                        <!-- Due Date -->
+                        <div class="text-[11px] font-medium text-stone-500 mb-3 flex items-center gap-1">
+                            <i class="fa-regular fa-calendar text-[10px] text-stone-400"></i>
+                            <span>${task.dueDate} 마감</span>
+                        </div>
+
+                        <!-- Memo -->
+                        <p class="text-stone-700 text-xs sm:text-sm leading-relaxed whitespace-pre-wrap mb-4 bg-amber-50/40 p-3 rounded-xl border border-amber-900/5 font-classic">
+                            ${task.memo ? escapeHtml(task.memo) : '메모가 없습니다.'}
+                        </p>
+                    </div>
+
+                    <!-- Footer actions -->
+                    <div class="pt-3 border-t border-stone-200/60 flex items-center justify-between gap-2 text-xs">
+                        <div>
+                            ${task.link ? `
+                                <a href="${escapeHtml(task.link)}" target="_blank" rel="noopener noreferrer" 
+                                   class="inline-flex items-center gap-1 text-xs font-medium text-stone-700 hover:text-stone-900 hover:underline">
+                                    <i class="fa-solid fa-link text-[10px] text-amber-800/60"></i>
+                                    <span>안내문 보기</span>
+                                </a>
+                            ` : `
+                                <span class="text-[11px] text-stone-400">안내문 없음</span>
+                            `}
+                        </div>
+
+                        <div class="flex items-center gap-2.5">
+                            <button onclick="openTaskModal('${task.id}')" title="수정" class="text-stone-400 hover:text-stone-700 transition">
+                                <i class="fa-solid fa-pen text-xs"></i>
+                            </button>
+                            <button onclick="deleteTask('${task.id}')" title="삭제" class="text-stone-400 hover:text-rose-500 transition">
+                                <i class="fa-solid fa-trash text-xs"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+
+                grid.appendChild(card);
+            });
+        }
+
+        function checkAndShowD1Popup() {
+            const d1Tasks = tasks.filter(t => calculateDDay(t.dueDate) === 1);
+            if (d1Tasks.length > 0) {
+                const container = document.getElementById('d1ListContainer');
+                container.innerHTML = '';
+
+                d1Tasks.forEach(task => {
+                    const item = document.createElement('div');
+                    item.className = 'bg-stone-100/70 p-3.5 rounded-xl border border-stone-200/60 text-xs';
+                    item.innerHTML = `
+                        <div class="flex items-center justify-between mb-1">
+                            <span class="font-bold text-stone-800 text-sm font-classic">
+                                ${escapeHtml(task.subject)}
+                            </span>
+                            <span class="bg-rose-400 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">D-1 내일</span>
+                        </div>
+                        ${task.memo ? `<p class="text-stone-600 mb-2 text-[11px] font-classic">${escapeHtml(task.memo)}</p>` : ''}
+                        ${task.link ? `
+                            <a href="${escapeHtml(task.link)}" target="_blank" rel="noopener noreferrer" 
+                               class="inline-flex items-center gap-1 text-xs font-semibold text-stone-800 hover:underline">
+                                <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i>
+                                <span>선생님 안내문 바로가기</span>
+                            </a>
+                        ` : ''}
+                    `;
+                    container.appendChild(item);
+                });
+
+                document.getElementById('d1PopupModal').classList.remove('hidden');
+            }
+        }
+
+        function closeD1Popup() {
+            document.getElementById('d1PopupModal').classList.add('hidden');
+        }
+
+        function openTaskModal(taskId = null) {
+            const modal = document.getElementById('taskModal');
+            const form = document.getElementById('taskForm');
+            const title = document.getElementById('modalTitle');
+
+            form.reset();
+            document.getElementById('taskId').value = '';
+
+            if (taskId) {
+                const task = tasks.find(t => t.id === taskId);
+                if (task) {
+                    title.innerText = '수행평가 수정';
+                    document.getElementById('taskId').value = task.id;
+                    document.getElementById('subjectInput').value = task.subject;
+                    document.getElementById('dueDateInput').value = task.dueDate;
+                    document.getElementById('linkInput').value = task.link || '';
+                    document.getElementById('memoInput').value = task.memo || '';
+                }
+            } else {
+                title.innerText = '새 수행평가 등록';
+                document.getElementById('dueDateInput').value = getRelativeDateStr(1);
+            }
+
+            modal.classList.remove('hidden');
+        }
+
+        function closeTaskModal() {
+            document.getElementById('taskModal').classList.add('hidden');
+        }
+
+        function handleFormSubmit(e) {
+            e.preventDefault();
+            const taskId = document.getElementById('taskId').value;
+            const subject = document.getElementById('subjectInput').value.trim();
+            const dueDate = document.getElementById('dueDateInput').value;
+            const link = document.getElementById('linkInput').value.trim();
+            const memo = document.getElementById('memoInput').value.trim();
+
+            if (!subject || !dueDate) return;
+
+            if (taskId) {
+                const index = tasks.findIndex(t => t.id === taskId);
+                if (index !== -1) {
+                    tasks[index] = { ...tasks[index], subject, dueDate, link, memo };
+                }
+            } else {
+                const newTask = {
+                    id: 'task-' + Date.now(),
+                    subject,
+                    dueDate,
+                    link,
+                    memo
+                };
+                tasks.push(newTask);
+            }
+
+            saveTasks();
+            renderTasks();
+            closeTaskModal();
+        }
+
+        function deleteTask(taskId) {
+            tasks = tasks.filter(t => t.id !== taskId);
+            saveTasks();
+            renderTasks();
+        }
+
+        function filterTasks(type) {
+            currentFilter = type;
+            
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.classList.remove('bg-white/90', 'text-stone-800', 'font-semibold', 'shadow-xs');
+                btn.classList.add('hover:text-stone-900');
+            });
+            
+            const activeBtn = document.getElementById(`btn-${type}`);
+            if (activeBtn) {
+                activeBtn.classList.add('bg-white/90', 'text-stone-800', 'font-semibold', 'shadow-xs');
+                activeBtn.classList.remove('hover:text-stone-900');
+            }
+            
+            renderTasks();
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+    </script>
+</body>
+</html>
